@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ReturnVault | Vendor Recovery Desk</title>
+  <!-- In-browser OCR engine -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     :root {
       --bg: #0f172a;
@@ -13,6 +15,8 @@
       --text-muted: #94a3b8;
       --primary: #3b82f6;
       --primary-hover: #2563eb;
+      --accent: #8b5cf6;
+      --accent-hover: #7c3aed;
       --success: #10b981;
       --warning: #f59e0b;
       --danger: #ef4444;
@@ -29,14 +33,22 @@
     .stat-value { font-size: 1.6rem; font-weight: 700; margin-top: 6px; }
     .val-pending { color: var(--warning); }
     .val-recovered { color: var(--success); }
-    .grid-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+    .grid-layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; }
     @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } }
     .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 20px; }
-    .card h2 { font-size: 1.15rem; margin-bottom: 16px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .card h2 { font-size: 1.15rem; }
     .form-group { margin-bottom: 14px; }
     label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
-    input, select, textarea { width: 100%; background: #0f172a; border: 1px solid var(--card-border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 0.9rem; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+    input, select { width: 100%; background: #0f172a; border: 1px solid var(--card-border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
+    
+    /* Scanner styles */
+    .scan-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: var(--accent); color: white; border: none; border-radius: 6px; padding: 10px; font-weight: 600; cursor: pointer; margin-bottom: 16px; transition: background 0.2s; }
+    .scan-btn:hover { background: var(--accent-hover); }
+    .scan-status { font-size: 0.8rem; color: #c4b5fd; text-align: center; margin-bottom: 12px; display: none; }
+    .ocr-preview { width: 100%; max-height: 120px; object-fit: contain; background: #0b1120; border-radius: 6px; margin-bottom: 12px; border: 1px dashed var(--card-border); display: none; }
+
     button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; border-radius: 6px; padding: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
     button.btn-primary:hover { background: var(--primary-hover); }
     .table-container { overflow-x: auto; }
@@ -47,7 +59,6 @@
     .status-pill { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
     .status-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
     .status-credited { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-    .status-rejected { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
     .btn-action { background: transparent; border: 1px solid var(--card-border); color: var(--text-muted); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; margin-right: 4px; }
     .btn-action:hover { color: var(--text); border-color: var(--text-muted); }
   </style>
@@ -76,7 +87,18 @@
 
     <div class="grid-layout">
       <div class="card">
-        <h2>Log Return / Core</h2>
+        <div class="card-header">
+          <h2>Log Return / Core</h2>
+        </div>
+
+        <!-- Photo Capture / Autofill Section -->
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display: none;" />
+        <button type="button" class="scan-btn" onclick="document.getElementById('photoInput').click()">
+          📷 Scan Invoice / Label Photo
+        </button>
+        <img id="imagePreview" class="ocr-preview" alt="Uploaded Receipt Preview" />
+        <div id="scanStatus" class="scan-status">Processing image and extracting fields...</div>
+
         <form id="returnForm">
           <div class="form-group">
             <label>Part Number</label>
@@ -167,7 +189,7 @@
     function renderLedger() {
       const tbody = document.getElementById('ledgerBody');
       if (entries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">No claims recorded yet. Add your first return using the form.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">No claims recorded yet. Add your first return using the form or scan tool.</td></tr>';
         return;
       }
 
@@ -212,6 +234,75 @@
       entries.unshift(newEntry);
       saveAndRender();
       e.target.reset();
+      document.getElementById('imagePreview').style.display = 'none';
+    });
+
+    // Optical Character Recognition (OCR) Autofill Engine
+    document.getElementById('photoInput').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const preview = document.getElementById('imagePreview');
+      const status = document.getElementById('scanStatus');
+
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = 'block';
+      status.style.display = 'block';
+      status.innerText = 'Scanning text from image...';
+
+      try {
+        const result = await Tesseract.recognize(file, 'eng', {
+          logger: m => {
+            if (m.status === 'recognizingtext') {
+              status.innerText = `Scanning: ${Math.round(m.progress * 100)}%`;
+            }
+          }
+        });
+
+        const rawText = result.data.text;
+        status.innerText = 'Extracting data into fields...';
+
+        // 1. Part Number Detection (e.g., FL-820-S, 8L3Z-6M280-AA, or labeled Part #)
+        const partMatch = rawText.match(/(?:Part\s*(?:#|No|Number)?[:\s]*)([A-Z0-9-]+)/i) || 
+                          rawText.match(/\b([A-Z0-9]{2,5}-[A-Z0-9]{3,6}(?:-[A-Z0-9]{1,4})?)\b/);
+        if (partMatch) {
+          document.getElementById('partNumber').value = partMatch[1].replace(/[^A-Za-z0-9-]/g, '').toUpperCase();
+        }
+
+        // 2. Known Vendor Matching
+        const vendors = ['Motorcraft', 'Ford', 'OEC', 'LKQ', 'Advance', 'AutoZone', 'NAPA', 'Dorman', 'GM Genuine'];
+        for (const v of vendors) {
+          if (new RegExp(v, 'i').test(rawText)) {
+            document.getElementById('vendor').value = v;
+            break;
+          }
+        }
+
+        // 3. Invoice / PO # Detection
+        const invMatch = rawText.match(/(?:Inv(?:oice)?|PO|Doc)\s*(?:#|No|Number)?[:\s]*([A-Z0-9-]+)/i);
+        if (invMatch) {
+          document.getElementById('invoiceNumber').value = invMatch[1];
+        }
+
+        // 4. Expected Dollar Amount Detection
+        const amountMatch = rawText.match(/(?:Total|Credit|Core|Amount|Due)?\s*\$\s*([0-9]+\.[0-9]{2})/i) ||
+                            rawText.match(/\b([0-9]+\.[0-9]{2})\b/);
+        if (amountMatch) {
+          document.getElementById('creditAmount').value = amountMatch[1];
+        }
+
+        // 5. Tracking / Tag Detection (e.g. 1Z... or long shipment tag)
+        const trackMatch = rawText.match(/\b(1Z[0-9A-Z]{16})\b/i) || 
+                           rawText.match(/(?:Tracking|Tag|Claim)\s*(?:#|No)?[:\s]*([0-9A-Z]+)/i);
+        if (trackMatch) {
+          document.getElementById('trackingNumber').value = trackMatch[1];
+        }
+
+        status.innerText = '✅ Extracted! Verify values below and click Add to Ledger.';
+      } catch (err) {
+        console.error(err);
+        status.innerText = '❌ Failed to read image. Please enter fields manually.';
+      }
     });
 
     renderLedger();
