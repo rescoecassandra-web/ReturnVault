@@ -1,327 +1,221 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="ReturnVault keeps return details organized, documented, and easy to revisit."
-    />
-    <title>ReturnVault</title>
-    <style>
-      :root {
-        color-scheme: light;
-        --ink: #1d2925;
-        --muted: #627069;
-        --paper: #f3efe5;
-        --paper-deep: #e7dfcf;
-        --accent: #ba5c39;
-        --line: rgba(29, 41, 37, 0.18);
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReturnVault | Vendor Recovery Desk</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--card-border); }
+    h1 { font-size: 1.75rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .badge { background: #1e3a8a; color: #93c5fd; padding: 4px 10px; font-size: 0.75rem; border-radius: 9999px; font-weight: 600; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 18px; }
+    .stat-title { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; margin-top: 6px; }
+    .val-pending { color: var(--warning); }
+    .val-recovered { color: var(--success); }
+    .grid-layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+    @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 20px; }
+    .card h2 { font-size: 1.15rem; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px; }
+    input, select, textarea { width: 100%; background: #0f172a; border: 1px solid var(--card-border); border-radius: 6px; padding: 10px; color: var(--text); font-size: 0.9rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+    button.btn-primary { width: 100%; background: var(--primary); color: white; border: none; border-radius: 6px; padding: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button.btn-primary:hover { background: var(--primary-hover); }
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    th { background: #0f172a; padding: 12px; color: var(--text-muted); border-bottom: 1px solid var(--card-border); font-weight: 600; }
+    td { padding: 12px; border-bottom: 1px solid var(--card-border); vertical-align: middle; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .status-pill { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .status-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .status-credited { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+    .status-rejected { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .btn-action { background: transparent; border: 1px solid var(--card-border); color: var(--text-muted); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; margin-right: 4px; }
+    .btn-action:hover { color: var(--text); border-color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ReturnVault <span class="badge">Live Desk</span></h1>
+      <span style="font-size: 0.85rem; color: var(--text-muted);">Vendor Core & Parts Claim Tracking</span>
+    </header>
 
-      * {
-        box-sizing: border-box;
-      }
-
-      html {
-        min-height: 100%;
-        background: var(--paper);
-      }
-
-      body {
-        min-height: 100vh;
-        margin: 0;
-        color: var(--ink);
-        font-family: "Avenir Next", Avenir, "Century Gothic", sans-serif;
-        background:
-          linear-gradient(115deg, transparent 0 69%, rgba(186, 92, 57, 0.08) 69% 69.25%, transparent 69.25%),
-          radial-gradient(circle at 82% 15%, rgba(186, 92, 57, 0.14), transparent 22rem),
-          var(--paper);
-      }
-
-      body::before {
-        position: fixed;
-        inset: 0;
-        z-index: -1;
-        content: "";
-        opacity: 0.33;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
-        pointer-events: none;
-      }
-
-      main {
-        display: grid;
-        min-height: 100vh;
-        grid-template-columns: minmax(1.5rem, 1fr) minmax(0, 74rem) minmax(1.5rem, 1fr);
-      }
-
-      .frame {
-        grid-column: 2;
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        min-height: 100vh;
-        padding: 2rem 0 1.75rem;
-      }
-
-      header,
-      footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-      }
-
-      .mark {
-        display: grid;
-        width: 2rem;
-        aspect-ratio: 1;
-        place-items: center;
-        border: 1px solid var(--ink);
-        border-radius: 50%;
-      }
-
-      .mark svg {
-        width: 1rem;
-      }
-
-      .status {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.55rem;
-        color: var(--muted);
-        font-size: 0.75rem;
-        letter-spacing: 0.06em;
-      }
-
-      .status::before {
-        width: 0.45rem;
-        height: 0.45rem;
-        border-radius: 50%;
-        background: var(--accent);
-        content: "";
-        animation: pulse 2.4s ease-in-out infinite;
-      }
-
-      .hero {
-        display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(17rem, 0.6fr);
-        gap: clamp(3rem, 8vw, 8rem);
-        align-items: center;
-        padding: 7rem 0 5rem;
-      }
-
-      .eyebrow {
-        display: flex;
-        align-items: center;
-        gap: 0.9rem;
-        margin: 0 0 1.5rem;
-        color: var(--accent);
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        animation: reveal 0.7s ease-out both;
-      }
-
-      .eyebrow::before {
-        width: 2.4rem;
-        height: 1px;
-        background: currentColor;
-        content: "";
-      }
-
-      h1 {
-        max-width: 10ch;
-        margin: 0;
-        font-family: "Iowan Old Style", "Palatino Linotype", Baskerville, serif;
-        font-size: clamp(4.3rem, 10vw, 9.6rem);
-        font-weight: 400;
-        letter-spacing: -0.075em;
-        line-height: 0.82;
-        animation: reveal 0.8s 0.08s ease-out both;
-      }
-
-      h1 em {
-        color: var(--accent);
-        font-weight: 400;
-      }
-
-      .intro {
-        max-width: 30rem;
-        margin: 2rem 0 0;
-        color: var(--muted);
-        font-size: clamp(1rem, 1.6vw, 1.2rem);
-        line-height: 1.65;
-        animation: reveal 0.8s 0.16s ease-out both;
-      }
-
-      .ticket {
-        position: relative;
-        padding: 2rem;
-        border: 1px solid var(--line);
-        background: rgba(243, 239, 229, 0.72);
-        box-shadow: 1.25rem 1.25rem 0 var(--paper-deep);
-        animation: reveal 0.8s 0.24s ease-out both;
-        backdrop-filter: blur(12px);
-      }
-
-      .ticket::before,
-      .ticket::after {
-        position: absolute;
-        top: 50%;
-        width: 1.2rem;
-        aspect-ratio: 1;
-        border: 1px solid var(--line);
-        border-radius: 50%;
-        background: var(--paper);
-        content: "";
-        transform: translateY(-50%);
-      }
-
-      .ticket::before {
-        left: -0.65rem;
-      }
-
-      .ticket::after {
-        right: -0.65rem;
-      }
-
-      .ticket-label {
-        margin: 0 0 2.5rem;
-        color: var(--muted);
-        font-size: 0.7rem;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-      }
-
-      .ticket strong {
-        display: block;
-        margin-bottom: 0.75rem;
-        font-family: "Iowan Old Style", "Palatino Linotype", Baskerville, serif;
-        font-size: 1.65rem;
-        font-weight: 400;
-      }
-
-      .ticket p:last-child {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.9rem;
-        line-height: 1.6;
-      }
-
-      footer {
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--line);
-        color: var(--muted);
-        font-size: 0.72rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      @keyframes reveal {
-        from {
-          opacity: 0;
-          transform: translateY(1.4rem);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      @keyframes pulse {
-        50% {
-          opacity: 0.35;
-          transform: scale(0.82);
-        }
-      }
-
-      @media (max-width: 760px) {
-        .frame {
-          padding-top: 1.25rem;
-        }
-
-        .status span {
-          display: none;
-        }
-
-        .hero {
-          grid-template-columns: 1fr;
-          gap: 3.5rem;
-          padding: 5rem 0 4rem;
-        }
-
-        h1 {
-          font-size: clamp(4rem, 22vw, 6.7rem);
-        }
-
-        .ticket {
-          max-width: 22rem;
-          margin-left: auto;
-        }
-
-        footer {
-          align-items: flex-start;
-          gap: 1rem;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-          animation-duration: 0.01ms !important;
-          animation-iteration-count: 1 !important;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <div class="frame">
-        <header>
-          <div class="brand">
-            <span class="mark" aria-hidden="true">
-              <svg viewBox="0 0 20 20" fill="none">
-                <path d="M4 3.5h8.5L16 7v9.5H4v-13Z" stroke="currentColor" />
-                <path d="M12.5 3.5V7H16M7 10h6M7 13h4" stroke="currentColor" />
-              </svg>
-            </span>
-            ReturnVault
-          </div>
-          <div class="status"><span>Preparing the vault</span></div>
-        </header>
-
-        <section class="hero" aria-labelledby="page-title">
-          <div>
-            <p class="eyebrow">A clearer record of every return</p>
-            <h1 id="page-title">Keep the <em>receipt.</em></h1>
-            <p class="intro">
-              ReturnVault is getting ready to keep purchase details, deadlines, and return records in one calm, dependable place.
-            </p>
-          </div>
-
-          <aside class="ticket" aria-label="Launch status">
-            <p class="ticket-label">Vault note 01</p>
-            <strong>Doors opening soon.</strong>
-            <p>The foundation is in place. We’re organizing the final details before access begins.</p>
-          </aside>
-        </section>
-
-        <footer>
-          <span>ReturnVault</span>
-          <span>Built for the details worth keeping</span>
-        </footer>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Open Claims</div>
+        <div class="stat-value" id="statOpenClaims">0</div>
       </div>
-    </main>
-  </body>
+      <div class="stat-card">
+        <div class="stat-title">Pending Recovery</div>
+        <div class="stat-value val-pending" id="statPendingVal">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Total Credited</div>
+        <div class="stat-value val-recovered" id="statCreditedVal">$0.00</div>
+      </div>
+    </div>
+
+    <div class="grid-layout">
+      <div class="card">
+        <h2>Log Return / Core</h2>
+        <form id="returnForm">
+          <div class="form-group">
+            <label>Part Number</label>
+            <input type="text" id="partNumber" required placeholder="e.g. FL-820-S" />
+          </div>
+          <div class="form-group">
+            <label>Vendor</label>
+            <input type="text" id="vendor" required placeholder="e.g. Motorcraft / OEC" />
+          </div>
+          <div class="form-group">
+            <label>Invoice / PO #</label>
+            <input type="text" id="invoiceNumber" placeholder="e.g. INV-90821" />
+          </div>
+          <div class="form-group">
+            <label>Return Type</label>
+            <select id="returnReason">
+              <option value="Core Return">Core Return</option>
+              <option value="Defective / Warranty">Defective / Warranty</option>
+              <option value="Customer Return">Customer Return</option>
+              <option value="Damaged in Transit">Damaged in Transit</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Expected Credit Amount ($)</label>
+            <input type="number" id="creditAmount" step="0.01" required placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label>Tracking / Claim #</label>
+            <input type="text" id="trackingNumber" placeholder="Carrier or vendor tag" />
+          </div>
+          <button type="submit" class="btn-primary">Add to Ledger</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Live Claim Ledger</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Part #</th>
+                <th>Vendor</th>
+                <th>Reason</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerBody">
+              <!-- Entries rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let entries = JSON.parse(localStorage.getItem('rv_claims') || '[]');
+
+    function saveAndRender() {
+      localStorage.setItem('rv_claims', JSON.stringify(entries));
+      renderLedger();
+      updateStats();
+    }
+
+    function updateStats() {
+      let openCount = 0;
+      let pendingTotal = 0;
+      let creditedTotal = 0;
+
+      entries.forEach(e => {
+        const val = parseFloat(e.amount) || 0;
+        if (e.status === 'Pending') {
+          openCount++;
+          pendingTotal += val;
+        } else if (e.status === 'Credited') {
+          creditedTotal += val;
+        }
+      });
+
+      document.getElementById('statOpenClaims').innerText = openCount;
+      document.getElementById('statPendingVal').innerText = `$${pendingTotal.toFixed(2)}`;
+      document.getElementById('statCreditedVal').innerText = `$${creditedTotal.toFixed(2)}`;
+    }
+
+    function renderLedger() {
+      const tbody = document.getElementById('ledgerBody');
+      if (entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 24px;">No claims recorded yet. Add your first return using the form.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = entries.map((item, index) => `
+        <tr>
+          <td>${item.date}</td>
+          <td><strong>${item.part}</strong></td>
+          <td>${item.vendor}</td>
+          <td>${item.reason}</td>
+          <td>$${parseFloat(item.amount).toFixed(2)}</td>
+          <td><span class="status-pill status-${item.status.toLowerCase()}">${item.status}</span></td>
+          <td>
+            ${item.status === 'Pending' ? `<button class="btn-action" onclick="setStatus(${index}, 'Credited')">Mark Credited</button>` : ''}
+            <button class="btn-action" onclick="deleteEntry(${index})">Remove</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.setStatus = function(index, newStatus) {
+      entries[index].status = newStatus;
+      saveAndRender();
+    };
+
+    window.deleteEntry = function(index) {
+      entries.splice(index, 1);
+      saveAndRender();
+    };
+
+    document.getElementById('returnForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const newEntry = {
+        date: new Date().toLocaleDateString(),
+        part: document.getElementById('partNumber').value,
+        vendor: document.getElementById('vendor').value,
+        invoice: document.getElementById('invoiceNumber').value,
+        reason: document.getElementById('returnReason').value,
+        amount: document.getElementById('creditAmount').value,
+        tracking: document.getElementById('trackingNumber').value,
+        status: 'Pending'
+      };
+      entries.unshift(newEntry);
+      saveAndRender();
+      e.target.reset();
+    });
+
+    renderLedger();
+    updateStats();
+  </script>
+</body>
 </html>
